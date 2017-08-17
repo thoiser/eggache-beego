@@ -43,9 +43,25 @@ func ListPhoto(condArr map[string]int, page int, offset int) (num int64, err err
 	start := (page - 1) * offset
 
 	var photo []Photo
-	// qs = qs.OrderBy("-knowid")
-	num, errs := qs.Limit(offset, start).All(&photo)
+	num, errs := qs.Limit(offset, start).OrderBy("-id").All(&photo)
 	return num, errs, photo
+}
+
+func ListPhotoSql(condArr map[string]int, page int, offset int) (num int64, err error, p []Photo) {
+	if page < 1 {
+		page = 1
+	}
+	if offset < 1 {
+		offset, _ = beego.AppConfig.Int("pageoffset")
+	}
+	start := (page - 1) * offset
+
+	var photo []Photo
+	qb, _ := orm.NewQueryBuilder("mysql")
+	qb.Select("*").From("a_photo").Where("del=?").OrderBy("id").Desc().Limit(offset).Offset(start)
+	sql := qb.String()
+	nums, err := orm.NewOrm().Raw(sql, condArr["del"]).QueryRows(&photo)
+	return nums, err, photo
 }
 
 func AddPhoto(addP Photo) (int64, error) {
